@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Quote Builder</title>
+
+    <style media="screen">
+      body, html {
+        margin: 0;
+        height: 100%;
+      }
+
+      a, a:visited {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      *::selection {
+        background: rgba(0, 0, 0, 0.5);
+        color: rgba(0, 0, 0, 0.5);
+      }
+
+      .container {
+        position: relative;
+      }
+
+      #canvas {
+        background: #eee;
+      }
+
+      #quote, #author {
+        position: absolute;
+        font-size: 45px;
+        font-family: 'Impact';
+        letter-spacing: -1px;
+        line-height: 115%;
+        min-width: 20px;
+        max-width: 100%;
+        outline: none;
+        color: transparent;
+        overflow: hidden;
+      }
+
+      #quote {
+        left: 44px;
+        top: 30px;
+      }
+
+      #author {
+        width: 98%;
+        margin-left: -86%;
+        float: right;
+        text-align: right;
+        left: 855px;
+        top: 325px;
+      }
+
+      #scale {
+        display: block;
+        width: 100%;
+        margin-left: 0;
+      }
+
+      #file {
+        position: absolute;
+        visibility: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <span id="quote" contenteditable spellcheck="false">Drop some image to start</span>
+      <span id="author" contenteditable spellcheck="false">Quote Builder</span>
+      <label for="file">
+        <canvas id="canvas" width="1000" height="400"></canvas>
+      </label>
+      <input id="scale" type="range" max="4" min=".01" step=".01" value="1">
+      <input id="file" type="file" name="pic" accept="image/*">
+    </div>
+
+    <script type="text/javascript">
+      var fontSize = '41px'
+      var fontFamily = 'Impact'
+
+      var canvas = document.getElementById('canvas')
+      var ctx = canvas.getContext('2d')
+      var quote = document.getElementById('quote')
+      var author = document.getElementById('author')
+      var scale = document.getElementById('scale')
+      var file = document.getElementById('file')
+      var image = new Image()
+      var overlay = new Image()
+      var imageX = 0
+      var imageY = 0
+
+      function render () {
+        ctx.save()
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+        // Scale on center
+        ctx.translate(canvas.width / 2, canvas.height / 2)
+        ctx.scale(scale.value, scale.value)
+        ctx.translate(-canvas.width / 2, -canvas.height / 2)
+
+        if (image.src) {
+          ctx.drawImage(image, imageX, imageY)
+        }
+
+        ctx.restore()
+        addThings()
+      }
+
+      function addImage (src) {
+        overlay.onload = function() {
+          image.onload = function () {
+            render()
+          }
+        }
+
+        overlay.src = 'data:image/png;base64,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'
+        image.src = src
+      }
+
+      function addThings () {
+        // Use innerText if possible, because it contains line break
+        var text = quote.innerText ? 'innerText' : 'textContent'
+
+        // Enlarge whitespace
+        var quoteText = quote[text].replace(/ /g, '\u2005')
+        var authorText = author[text].replace(/ /g, '\u2005')
+
+        if (overlay.src) {
+          ctx.drawImage(overlay, 0, 0)
+        }
+        addQuote(quoteText)
+        addAuthor(authorText)
+      }
+
+      function loadImage (src) {
+        if (!src.type.match(/image.*/)) return false
+
+        var reader = new FileReader()
+        reader.onload = function (e) {
+          addImage(e.target.result)
+        }
+        reader.readAsDataURL(src)
+
+        return true
+      }
+
+      function drawText (text, x, y) {
+        ctx.font = fontSize + ' ' + fontFamily
+        ctx.fillStyle = '#fafafa'
+        // Shadow
+        ctx.shadowColor   = '#262626'
+        ctx.shadowOffsetX = 1
+        ctx.shadowOffsetY = 1
+        ctx.shadowBlur    = 6
+        // Stroke
+        ctx.lineJoin = 'miter'
+        ctx.miterLimit = 2
+        ctx.strokeStyle = '#0a0a0a'
+        ctx.lineWidth = 8
+
+        ctx.strokeText(text, x, y)
+        ctx.fillText(text, x, y)
+        ctx.shadowColor = 'transparent'
+      }
+
+      function addQuote (quote) {
+        var line = quote.split('\n')
+        var offsetX = 0
+        var offsetY = 0
+        ctx.textAlign = 'left'
+
+        if (line.length === 1) {
+          var text = '\u201C\u200A' + quote + '\u200A\u201D'
+          drawText(text, 30, 30)
+        } else {
+          line[0] = '\u201C\u200A' + line[0]
+          line[line.length - 2] = line[line.length - 2] + '\u200A\u201D'
+          line.pop()
+          line.forEach(function (text) {
+            if (line.indexOf(text) === 1) {
+              offsetX += 35
+            } else if (line.indexOf(text) > 1) {
+              offsetX += 20
+            }
+            drawText(text, 30 + offsetX, 30 + offsetY)
+            offsetY += 50
+          })
+        }
+      }
+
+      function addAuthor (author) {
+        ctx.textAlign = 'right'
+        var text = '-\u200A' + author
+        drawText(text, 970, 325)
+      }
+
+      function mouseDown (e) {
+        if (e.which === 1) {
+          canvas.addEventListener('mousemove', mouseMove)
+        }
+      }
+
+      function mouseUp (e) {
+        canvas.removeEventListener('mousemove', mouseMove)
+      }
+
+      function mouseMove (e) {
+        imageX += e.movementX / scale.value
+        imageY += e.movementY / scale.value
+        render()
+      }
+
+      function handleEvents() {
+        var editable = document.querySelectorAll('span[contenteditable]')
+        var clicked = {}
+
+        // Handle image move
+        canvas.addEventListener('mousedown', mouseDown)
+        canvas.addEventListener('mouseup', mouseUp)
+        canvas.addEventListener('mouseout', mouseUp)
+
+        // Handle input
+        for (var i = 0; i < editable.length; i++) {
+          editable[i].addEventListener('click', function () {
+            if (clicked[this.id] || window.location.hash) return
+            this.innerHTML = ''
+            clicked[this.id] = true
+            render()
+          })
+          editable[i].addEventListener('input', render)
+          editable[i].addEventListener('dblclick', function () {
+            this.innerHTML = ''
+            render()
+          })
+        }
+        scale.addEventListener('input', render)
+
+        quote.addEventListener('input', function () {
+          var child = this.children
+          var margin = 0
+          for (var i = 0; i < child.length; i++) {
+            margin += 15 + (i*2.5)
+            child[i].style.marginLeft = margin + 'px'
+          }
+        })
+      }
+
+      function drop (e) {
+        e.preventDefault()
+        var load = loadImage(e.dataTransfer.files[0])
+        if (load) {
+          scale.style.visibility = 'visible'
+          quote.textContent = 'Click text to edit'
+          author.textContent = 'Anonymous'
+          file.disabled = true
+          handleEvents()
+        } else {
+          quote.textContent = 'Invalid image'
+          render()
+        }
+      }
+
+      function init () {
+        ctx.textBaseline = 'top'
+        scale.style.visibility = 'hidden'
+        render()
+
+        // Handle image drop
+        document.addEventListener('dragover', function (e) {e.preventDefault()})
+        document.addEventListener('drop', drop)
+        file.addEventListener('change', function (e) {
+          e.dataTransfer = {files: this.files}
+          drop(e)
+        })
+      }
+
+      init()
+    </script>
+  </body>
+</html>
